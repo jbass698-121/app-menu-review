@@ -5,7 +5,15 @@ export async function POST(request: NextRequest) {
   const supabase = createServerSupabaseClient()
 
   const body = await request.json()
-  const { google_place_id, name, address, city, latitude, longitude, photo_url } = body
+  const {
+    google_place_id,
+    name,
+    address,
+    city,
+    latitude,
+    longitude,
+    photo_url,
+  } = body
 
   // Check if restaurant already exists by google_place_id
   if (google_place_id) {
@@ -18,7 +26,10 @@ export async function POST(request: NextRequest) {
     if (existingError && existingError.code !== 'PGRST116') {
       // PGRST116 = no rows found; anything else is a real error
       console.error('Lookup restaurant error:', existingError)
-      return NextResponse.json({ error: existingError.message }, { status: 500 })
+      return NextResponse.json(
+        { error: existingError.message },
+        { status: 500 }
+      )
     }
 
     if (existing) {
