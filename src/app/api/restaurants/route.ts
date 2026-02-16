@@ -3,22 +3,23 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
   const supabase = createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
 
   const body = await request.json()
   const { google_place_id, name, address, city, latitude, longitude, photo_url } = body
 
   // Check if restaurant already exists by google_place_id
   if (google_place_id) {
-    const { data: existing } = await supabase
+    const { data: existing, error: existingError } = await supabase
       .from('restaurants')
       .select('id')
       .eq('google_place_id', google_place_id)
       .single()
+
+    if (existingError && existingError.code !== 'PGRST116') {
+      // PGRST116 = no rows found; anything else is a real error
+      console.error('Lookup restaurant error:', existingError)
+      return NextResponse.json({ error: existingError.message }, { status: 500 })
+    }
 
     if (existing) {
       return NextResponse.json({ id: existing.id })
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
       latitude,
       longitude,
       photo_url,
-      created_by: user.id,
+      // created_by is optional for now since we’re not enforcing server-side user
     })
     .select('id')
     .single()
